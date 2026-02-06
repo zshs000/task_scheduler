@@ -2,16 +2,27 @@
 
 一个可在多种 AI 客户端中使用的本地提醒技能（例如 Claude、Codex 等）。
 支持通过自然语言添加提醒、自动启动服务，并提供 Web 前端管理界面。
+当前仅支持邮件提醒，后续会扩展更多提醒方式。
 
 ## 获取项目
 
-方式一：Git 克隆
+方式一（推荐）：npx 安装
+
+```
+npx skills add https://github.com/zshs000/task_scheduler --skill task-reminder
+```
+
+更多安装方式与详细用法见：
+- https://skills.sh/
+- https://github.com/vercel-labs/skills
+
+方式二：Git 克隆
 
 ```
 git clone https://github.com/zshs000/task_scheduler.git
 ```
 
-方式二：直接下载并解压
+方式三：直接下载并解压
 
 ## Python 版本
 
