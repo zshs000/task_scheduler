@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务调度系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .status-active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .status-completed {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .task-grid {
+            grid-auto-rows: 160px;
+            max-height: calc(160px * 2 + 16px);
+            overflow-y: auto;
+        }
+        .task-card {
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(2px);
+        }
+        .history-scroll {
+            max-height: calc(72px * 5 + 12px * 4);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 头部 -->
+        <header class="text-center mb-10 fade-in">
+            <h1 class="text-4xl font-bold text-white mb-2">任务调度系统</h1>
+            <p class="text-white/70">简单高效的定时提醒管理</p>
+            <div id="server-status" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm">
+                <span class="w-2 h-2 rounded-full bg-green-500 pulse-dot"></span>
+                <span class="text-gray-700">服务器运行中</span>
+            </div>
+        </header>
+
+        <!-- 添加任务卡片 -->
+        <div class="glass rounded-2xl p-6 mb-8 fade-in card-hover">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                添加新提醒
+            </h2>
+            <form id="add-task-form" class="space-y-4">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 items-end">
+                    <div class="lg:col-span-2">
+                        <label class="block text-sm font-medium text-gray-600 mb-2">提醒时间</label>
+                        <div class="flex flex-wrap gap-2">
+                            <div class="w-[90px]">
+                                <span class="text-xs text-gray-500">天</span>
+                                <input type="number" id="time-days" min="0" value="0"
+                                    class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition bg-white">
+                            </div>
+                            <div class="w-[90px]">
+                                <span class="text-xs text-gray-500">小时</span>
+                                <input type="number" id="time-hours" min="0" value="0"
+                                    class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition bg-white">
+                            </div>
+                            <div class="w-[90px]">
+                                <span class="text-xs text-gray-500">分钟</span>
+                                <input type="number" id="time-minutes" min="0" value="30"
+                                    class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition bg-white">
+                            </div>
+                            <div class="w-[90px]">
+                                <span class="text-xs text-gray-500">秒</span>
+                                <input type="number" id="time-seconds" min="0" value="0"
+                                    class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition bg-white">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-3">
+                        <label class="block text-sm font-medium text-gray-600 mb-2">提醒内容</label>
+                        <input type="text" id="task-content" placeholder="输入提醒内容..." required
+                            class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition">
+                    </div>
+                </div>
+                <div class="flex justify-center">
+                    <button type="submit"
+                        class="w-full lg:w-auto px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium rounded-xl hover:from-purple-700 hover:to-indigo-700 transition shadow-lg hover:shadow-xl">
+                        添加提醒
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="glass rounded-2xl p-5 fade-in card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">活跃任务</p>
+                        <p id="active-count" class="text-3xl font-bold text-gray-800">0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-5 fade-in card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">已完成</p>
+                        <p id="completed-count" class="text-3xl font-bold text-gray-800">0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-5 fade-in card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">总任务数</p>
+                        <p id="total-count" class="text-3xl font-bold text-gray-800">0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 任务列表 -->
+        <div class="glass rounded-2xl p-6 mb-8 fade-in">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    任务列表
+                </h2>
+                <div class="flex gap-2">
+                    <button onclick="refreshTasks()" class="px-4 py-2 text-sm bg-white rounded-lg hover:bg-gray-50 transition border border-gray-200 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        刷新
+                    </button>
+                    <button onclick="clearCompleted()" class="px-4 py-2 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition border border-red-200 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        清理已完成
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white/60 rounded-2xl p-4 border border-white/60">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                            <span class="font-medium text-gray-800">进行中</span>
+                        </div>
+                        <span id="active-count-badge" class="text-xs text-gray-500"></span>
+                    </div>
+                    <div id="active-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 task-grid">
+                        <!-- 进行中任务卡片 -->
+                    </div>
+                    <div id="active-empty" class="hidden text-center py-6">
+                        <p class="text-sm text-gray-400">暂无进行中任务</p>
+                    </div>
+                </div>
+
+                <div class="bg-white/60 rounded-2xl p-4 border border-white/60">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-gray-500"></span>
+                            <span class="font-medium text-gray-800">已完成</span>
+                        </div>
+                        <span id="completed-count-badge" class="text-xs text-gray-500"></span>
+                    </div>
+                    <div id="completed-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 task-grid">
+                        <!-- 已完成任务卡片 -->
+                    </div>
+                    <div id="completed-empty" class="hidden text-center py-6">
+                        <p class="text-sm text-gray-400">暂无已完成任务</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 执行历史 -->
+        <div class="glass rounded-2xl p-6 fade-in">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    执行历史
+                </h2>
+                <button onclick="clearHistory()" class="px-4 py-2 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition border border-red-200 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    清空执行历史
+                </button>
+            </div>
+            <div id="history-list" class="space-y-3 history-scroll">
+                <!-- 历史记录将在这里动态生成 -->
+            </div>
+            <div id="history-empty" class="hidden text-center py-8">
+                <p class="text-gray-400">暂无执行记录</p>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="text-center mt-10 text-white/50 text-sm">
+            <p>任务调度系统 v1.0 | 本地运行</p>
+        </footer>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="fixed bottom-4 right-4 transform translate-y-20 opacity-0 transition-all duration-300">
+        <div class="glass rounded-xl px-6 py-4 shadow-lg flex items-center gap-3">
+            <span id="toast-icon"></span>
+            <span id="toast-message" class="text-gray-700"></span>
+        </div>
+    </div>
+
+    <!-- 历史详情弹窗 -->
+    <div id="history-modal" class="fixed inset-0 hidden items-center justify-center z-50">
+        <div class="absolute inset-0 modal-backdrop" onclick="closeHistoryModal()"></div>
+        <div class="relative w-[92vw] max-w-3xl bg-white rounded-2xl shadow-2xl border border-gray-100 p-6">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">执行历史详情</h3>
+                    <p id="history-modal-subtitle" class="text-sm text-gray-500"></p>
+                </div>
+                <button onclick="closeHistoryModal()" class="p-2 rounded-lg hover:bg-gray-100 transition">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 max-h-[60vh] overflow-auto">
+                <pre id="history-modal-content" class="text-sm text-gray-700 whitespace-pre-wrap"></pre>
+            </div>
+            <div class="mt-4 text-right">
+                <button onclick="closeHistoryModal()" class="px-4 py-2 text-sm bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let API_BASE = 'http://127.0.0.1:8000';
+        let HISTORY_CACHE = [];
+        let HISTORY_LOADING = false;
+
+        // 显示Toast通知
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-message');
+
+            msg.textContent = message;
+            icon.innerHTML = type === 'success'
+                ? '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+                : '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // 格式化时间
+        function formatTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // 计算剩余时间
+        function getTimeRemaining(nextRunTime) {
+            if (!nextRunTime) return null;
+            const now = new Date();
+            const target = new Date(nextRunTime);
+            const diff = target - now;
+
+            if (diff <= 0) return '即将执行';
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            if (hours > 0) return `${hours}小时${minutes}分钟后`;
+            if (minutes > 0) return `${minutes}分钟${seconds}秒后`;
+            return `${seconds}秒后`;
+        }
+
+        // 创建任务卡片
+        function createTaskCard(task) {
+            const isActive = task.status === 'active';
+            const timeRemaining = getTimeRemaining(task.next_run_time);
+            const content = task.script_args?.find((arg, i, arr) => arr[i-1] === '--content') || '无内容';
+
+            return `
+                <div class="bg-white rounded-xl p-5 shadow-sm card-hover border border-gray-100 task-card">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full text-white ${isActive ? 'status-active' : 'status-completed'}">
+                                ${isActive ? '进行中' : '已完成'}
+                            </span>
+                            <span class="text-xs text-gray-400">${task.task_type}</span>
+                        </div>
+                        ${isActive ? `
+                            <button onclick="deleteTask('${task.task_id}')" class="p-1 hover:bg-red-50 rounded-lg transition group">
+                                <svg class="w-5 h-5 text-gray-400 group-hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        ` : ''}
+                    </div>
+                    <p class="text-gray-800 font-medium mb-2 line-clamp-2">${content}</p>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-400">ID: ${task.task_id.substring(0, 15)}...</span>
+                        ${timeRemaining ? `<span class="text-purple-600 font-medium">${timeRemaining}</span>` : ''}
+                    </div>
+                    <div class="mt-auto pt-3 border-t border-gray-100 text-xs text-gray-400">
+                        创建于 ${formatTime(task.created_at)}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 创建历史记录项
+        function createHistoryItem(record, index) {
+            const isSuccess = record.return_code === 0;
+            const content = record.stdout || record.stderr || '无输出';
+
+            return `
+                <button onclick="showHistoryDetail(${index})" class="w-full text-left">
+                    <div class="flex items-start gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:shadow-sm transition">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${isSuccess ? 'bg-green-100' : 'bg-red-100'}">
+                        ${isSuccess
+                            ? '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+                            : '<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>'
+                        }
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-medium text-gray-800">${record.task_id}</span>
+                            <span class="text-xs text-gray-400">${formatTime(record.executed_at)}</span>
+                        </div>
+                        <p class="text-sm text-gray-500 truncate">${isSuccess ? '执行成功' : '执行失败: ' + content.substring(0, 50)}</p>
+                    </div>
+                </div>
+                </button>
+            `;
+        }
+
+        // 刷新任务列表
+        async function refreshTasks() {
+            try {
+                const response = await fetch(`${API_BASE}/tasks`);
+                const tasks = await response.json();
+
+                const activeList = document.getElementById('active-list');
+                const completedList = document.getElementById('completed-list');
+                const activeEmpty = document.getElementById('active-empty');
+                const completedEmpty = document.getElementById('completed-empty');
+
+                const activeTasks = tasks.filter(t => t.status === 'active');
+                const completedTasks = tasks.filter(t => t.status === 'completed');
+
+                // 更新统计
+                document.getElementById('active-count').textContent = activeTasks.length;
+                document.getElementById('completed-count').textContent = completedTasks.length;
+                document.getElementById('total-count').textContent = tasks.length;
+                document.getElementById('active-count-badge').textContent = `${activeTasks.length} 个任务`;
+                document.getElementById('completed-count-badge').textContent = `${completedTasks.length} 个任务`;
+
+                if (activeTasks.length === 0) {
+                    activeList.classList.add('hidden');
+                    activeEmpty.classList.remove('hidden');
+                } else {
+                    activeList.classList.remove('hidden');
+                    activeEmpty.classList.add('hidden');
+                    activeList.innerHTML = activeTasks.map(createTaskCard).join('');
+                }
+
+                if (completedTasks.length === 0) {
+                    completedList.classList.add('hidden');
+                    completedEmpty.classList.remove('hidden');
+                } else {
+                    completedList.classList.remove('hidden');
+                    completedEmpty.classList.add('hidden');
+                    completedList.innerHTML = completedTasks.map(createTaskCard).join('');
+                }
+            } catch (error) {
+                console.error('获取任务失败:', error);
+                showToast('获取任务失败', 'error');
+            }
+        }
+
+        // 刷新执行历史
+        async function refreshHistory(reset = false) {
+            if (HISTORY_LOADING) return;
+            if (reset) {
+                HISTORY_CACHE = [];
+            }
+
+            HISTORY_LOADING = true;
+            try {
+                const response = await fetch(`${API_BASE}/history`);
+                const history = await response.json();
+
+                const historyList = document.getElementById('history-list');
+                const historyEmpty = document.getElementById('history-empty');
+
+                if (history.length === 0) {
+                    historyList.classList.add('hidden');
+                    historyEmpty.classList.remove('hidden');
+                } else {
+                    historyList.classList.remove('hidden');
+                    historyEmpty.classList.add('hidden');
+
+                    HISTORY_CACHE = history;
+                    historyList.innerHTML = history.map((record, i) => createHistoryItem(record, i)).join('');
+                }
+            } catch (error) {
+                console.error('获取历史失败:', error);
+            } finally {
+                HISTORY_LOADING = false;
+            }
+        }
+
+        function showHistoryDetail(index) {
+            const record = HISTORY_CACHE[index];
+            if (!record) return;
+
+            const modal = document.getElementById('history-modal');
+            const subtitle = document.getElementById('history-modal-subtitle');
+            const content = document.getElementById('history-modal-content');
+
+            subtitle.textContent = `${record.task_id} | ${formatTime(record.executed_at)}`;
+            content.textContent = JSON.stringify(record, null, 2);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeHistoryModal() {
+            const modal = document.getElementById('history-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function clearHistory() {
+            if (!confirm('确定要清空全部执行历史吗？')) return;
+            try {
+                const response = await fetch(`${API_BASE}/history`, { method: 'DELETE' });
+                if (response.ok) {
+                    showToast('执行历史已清空');
+                    await refreshHistory(true);
+                } else {
+                    showToast('清空失败', 'error');
+                }
+            } catch (error) {
+                showToast('清空失败: ' + error.message, 'error');
+            }
+        }
+
+        // 添加任务
+        async function addTask(event) {
+            event.preventDefault();
+
+            const days = parseInt(document.getElementById('time-days').value || '0', 10);
+            const hours = parseInt(document.getElementById('time-hours').value || '0', 10);
+            const minutes = parseInt(document.getElementById('time-minutes').value || '0', 10);
+            const seconds = parseInt(document.getElementById('time-seconds').value || '0', 10);
+            const content = document.getElementById('task-content').value;
+
+            // 计算秒数
+            const totalSeconds =
+                (days * 86400) +
+                (hours * 3600) +
+                (minutes * 60) +
+                seconds;
+            if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+                showToast('请至少设置一个时间单位', 'error');
+                return;
+            }
+
+            // 计算执行时间
+            const executeAt = new Date(Date.now() + totalSeconds * 1000).toISOString();
+            const taskId = `reminder_${Date.now()}`;
+
+            try {
+                const response = await fetch(`${API_BASE}/tasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        task_id: taskId,
+                        task_type: 'date',
+                        execute_at: executeAt,
+                        script_path: 'scripts/send_email.py',
+                        script_args: ['--content', content]
+                    })
+                });
+
+                if (response.ok) {
+                    showToast('提醒已添加');
+                    document.getElementById('task-content').value = '';
+                    refreshTasks();
+                } else {
+                    const error = await response.json();
+                    showToast(error.detail || '添加失败', 'error');
+                }
+            } catch (error) {
+                showToast('添加失败: ' + error.message, 'error');
+            }
+        }
+
+        // 删除任务
+        async function deleteTask(taskId) {
+            if (!confirm('确定要删除这个任务吗？')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showToast('任务已删除');
+                    refreshTasks();
+                } else {
+                    showToast('删除失败', 'error');
+                }
+            } catch (error) {
+                showToast('删除失败: ' + error.message, 'error');
+            }
+        }
+
+        // 清理已完成任务
+        async function clearCompleted() {
+            if (!confirm('确定要清理所有已完成的任务吗？')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/tasks`);
+                const tasks = await response.json();
+                const completedTasks = tasks.filter(t => t.status === 'completed');
+
+                for (const task of completedTasks) {
+                    await fetch(`${API_BASE}/tasks/${task.task_id}`, { method: 'DELETE' });
+                }
+
+                showToast(`已清理 ${completedTasks.length} 个任务`);
+                refreshTasks();
+            } catch (error) {
+                showToast('清理失败: ' + error.message, 'error');
+            }
+        }
+
+        // 检查服务器状态
+        async function checkServerStatus() {
+            const statusEl = document.getElementById('server-status');
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    statusEl.innerHTML = `
+                        <span class="w-2 h-2 rounded-full bg-green-500 pulse-dot"></span>
+                        <span class="text-gray-700">服务器运行中</span>
+                    `;
+                }
+            } catch (error) {
+                statusEl.innerHTML = `
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span class="text-gray-700">服务器离线</span>
+                `;
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/config');
+                if (response.ok) {
+                    const cfg = await response.json();
+                    if (cfg.api_base) {
+                        API_BASE = cfg.api_base;
+                    }
+                }
+            } catch (error) {
+                // 保持默认API_BASE
+            }
+        }
+
+        // 初始化
+        document.getElementById('add-task-form').addEventListener('submit', addTask);
+
+        // 首次加载
+        loadConfig().then(() => {
+            refreshTasks();
+            refreshHistory(true);
+            checkServerStatus();
+        });
+
+        // 定时刷新
+        setInterval(() => {
+            refreshTasks();
+            checkServerStatus();
+        }, 10000);
+
+        // 执行历史滚动查看：一次性加载全部，仅限制可视高度
+    </script>
+</body>
+</html>

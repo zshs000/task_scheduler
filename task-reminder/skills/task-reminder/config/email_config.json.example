@@ -1,0 +1,8 @@
+{
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": 587,
+  "smtp_user": "your_email@gmail.com",
+  "smtp_password": "your_app_password",
+  "recipient": "your_email@gmail.com",
+  "sender_name": "任务提醒系统"
+}

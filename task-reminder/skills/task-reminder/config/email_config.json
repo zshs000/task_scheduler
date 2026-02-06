@@ -1,0 +1,8 @@
+{
+  "smtp_host": "smtp.qq.com",
+  "smtp_port": 587,
+  "smtp_user": "xxx@qq.com",
+  "smtp_password": "xxx",
+  "recipient": "xxx@qq.com",
+  "sender_name": "任务提醒系统"
+}
