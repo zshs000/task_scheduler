@@ -162,7 +162,7 @@ def _post_task(task_id: str, execute_at: str, content: str, time_desc: str):
         'task_id': task_id,
         'task_type': 'date',
         'execute_at': execute_at,
-        'script_path': 'scripts/send_email.py',
+        'script_path': 'scripts/send_notify.py',
         'script_args': ['--content', content]
     }
 

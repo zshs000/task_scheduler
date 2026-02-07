@@ -1,0 +1,4 @@
+{
+  "webhook_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY",
+  "mentioned_list": []
+}
