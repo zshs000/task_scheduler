@@ -44,7 +44,7 @@ def main():
         print("正在安装/更新依赖...")
         subprocess.run([str(venv_python), "-m", "pip", "install", "-r", str(requirements_path)], check=True)
     else:
-        print("✗ 找不到 requirements.txt")
+        print("[ERROR] 找不到 requirements.txt")
         sys.exit(1)
 
     # 依赖检查
@@ -53,10 +53,10 @@ def main():
             [str(venv_python), "-c", "import fastapi, uvicorn, apscheduler"],
             check=True
         )
-        print("✓ 依赖检查通过")
+        print("[OK] 依赖检查通过")
         print()
     except subprocess.CalledProcessError:
-        print("✗ 依赖检查失败，请检查安装输出")
+        print("[ERROR] 依赖检查失败，请检查安装输出")
         sys.exit(1)
 
     # 启动服务器

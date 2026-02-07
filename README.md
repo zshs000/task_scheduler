@@ -12,7 +12,7 @@
 npx skills add https://github.com/zshs000/task_scheduler --skill task-reminder
 ```
 
-更多安装方式与详细用法见：
+更多 npx 安装用法与参数说明见：
 - https://skills.sh/
 - https://github.com/vercel-labs/skills
 
