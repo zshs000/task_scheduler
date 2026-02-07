@@ -1,0 +1,13 @@
+{
+  "sources": [
+    {"name": "36kr", "type": "web", "enabled": true},
+    {"name": "zhihu_hot", "type": "web", "enabled": true},
+    {"name": "sina_news", "type": "web", "enabled": true},
+    {"name": "infoq", "type": "web", "enabled": true}
+  ],
+  "custom_rss": [
+    {"name": "Hacker News", "url": "https://hnrss.org/frontpage", "enabled": false}
+  ],
+  "max_items_per_source": 10,
+  "max_total_items": 30
+}
